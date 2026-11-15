@@ -1,0 +1,13 @@
+# Agent skill folders — their template scaffolds can confuse deployment
+# bundlers scanning for the project root (course: Agent Setup chapter).
+.agents
+.claude
+.zcode
+
+# Never bake secrets, dependencies, build output, or local tool state
+# into a Docker build context.
+.env*
+node_modules
+dist
+.git
+.vercel
