@@ -1,5 +1,10 @@
 import { Hono } from "hono";
 
+// This project's TypeScript 7 does not auto-load @types/node declarations,
+// and an explicit types:["node"] entry breaks Vercel's build (TS2688) — so
+// declare the single Node global the deployed serverless handler needs.
+declare const process: { env: Record<string, string | undefined> };
+
 const app = new Hono();
 
 app.get("/", (c) => {
@@ -25,9 +30,9 @@ type TelegramUpdate = {
   message?: TelegramMessage;
 };
 
-// Telegram webhook receiver: POST {update: object}, returns what the user sent.
-// Registered later via setWebhook against the deployed URL; Telegram expects a
-// quick 2xx reply (https://core.telegram.org/bots/webhooks).
+// Telegram webhook receiver. Echoes what the user sent AND replies in the
+// chat via sendMessage — a JSON response alone is only the ack Telegram
+// expects (https://core.telegram.org/bots/webhooks), never a chat message.
 app.post("/telegram/webhook", async (c) => {
   let update: TelegramUpdate;
   try {
@@ -36,11 +41,30 @@ app.post("/telegram/webhook", async (c) => {
     return c.json({ error: "invalid JSON body" }, 400);
   }
   const msg = update.message;
+  const text = msg?.text ?? null;
+
+  let replied = false;
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (token && text && msg?.chat?.id) {
+    try {
+      const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ chat_id: msg.chat.id, text }),
+      });
+      const data = (await res.json()) as { ok?: boolean };
+      replied = data.ok === true;
+    } catch {
+      // Never fail the webhook on a reply error — Telegram retries non-2xx.
+    }
+  }
+
   return c.json({
     update_id: update.update_id,
     from: msg?.from?.first_name ?? null,
     chat_id: msg?.chat?.id ?? null,
-    text: msg?.text ?? null,
+    text,
+    replied,
   });
 });
 
