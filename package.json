@@ -2,9 +2,9 @@
   "name": "ai-personal-assistant",
   "type": "module",
   "scripts": {
-    "dev": "tsx watch src/dev.ts",
+    "dev": "bun --watch src/dev.ts",
     "build": "tsc",
-    "start": "tsx src/dev.ts"
+    "start": "bun src/dev.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "^4.0.121",
