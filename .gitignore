@@ -32,3 +32,5 @@ dist/
 .vercel
 .env*
 .neon
+
+.trigger
