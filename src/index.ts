@@ -47,11 +47,14 @@ app.post("/telegram/webhook", async (c) => {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (token && text && msg?.chat?.id) {
     try {
-      const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ chat_id: msg.chat.id, text }),
-      });
+      const res = await fetch(
+        `https://api.telegram.org/bot${token}/sendMessage`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chat_id: msg.chat.id, text }),
+        },
+      );
       const data = (await res.json()) as { ok?: boolean };
       replied = data.ok === true;
     } catch {
