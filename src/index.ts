@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { google } from "@ai-sdk/google";
 
 // This project's TypeScript 7 does not auto-load @types/node declarations,
 // and an explicit types:["node"] entry breaks Vercel's build (TS2688) — so
@@ -31,8 +32,9 @@ type TelegramUpdate = {
 };
 
 // Telegram webhook receiver. Replies in the chat with Gemini-generated text
-// (via the Vercel AI Gateway — OIDC-authenticated automatically on Vercel),
-// falling back to echoing the user's own text if the AI call fails. The JSON
+// (direct Google Gemini API free tier, authenticated via the
+// GOOGLE_GENERATIVE_AI_API_KEY env var), falling back to echoing the user's
+// own text if the AI call fails. The JSON
 // response alone is only the ack Telegram expects
 // (https://core.telegram.org/bots/webhooks), never a chat message.
 app.post("/telegram/webhook", async (c) => {
@@ -51,11 +53,12 @@ app.post("/telegram/webhook", async (c) => {
   if (token && text && msg?.chat?.id) {
     try {
       // Lazy import: the ai package's dependency graph includes @vercel/oidc
-      // (CJS), which the Hono CLI's in-process bundler cannot load statically.
-      // A runtime import works in Bun, Node and on Vercel alike.
-      const { generateText, gateway } = await import("ai");
+      // (CJS, via @ai-sdk/gateway), which the Hono CLI's in-process bundler
+      // cannot load statically. A runtime import works in Bun, Node and on
+      // Vercel alike. (@ai-sdk/google itself is statically imported above.)
+      const { generateText } = await import("ai");
       const result = await generateText({
-        model: gateway("google/gemini-3.1-flash-lite"),
+        model: google("gemini-3.5-flash-lite"),
         instructions:
           "You are a helpful personal assistant. Reply concisely, in plain text suited for a Telegram chat.",
         prompt: text,
