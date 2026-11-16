@@ -30,9 +30,11 @@ type TelegramUpdate = {
   message?: TelegramMessage;
 };
 
-// Telegram webhook receiver. Echoes what the user sent AND replies in the
-// chat via sendMessage — a JSON response alone is only the ack Telegram
-// expects (https://core.telegram.org/bots/webhooks), never a chat message.
+// Telegram webhook receiver. Replies in the chat with Gemini-generated text
+// (via the Vercel AI Gateway — OIDC-authenticated automatically on Vercel),
+// falling back to echoing the user's own text if the AI call fails. The JSON
+// response alone is only the ack Telegram expects
+// (https://core.telegram.org/bots/webhooks), never a chat message.
 app.post("/telegram/webhook", async (c) => {
   let update: TelegramUpdate;
   try {
@@ -44,15 +46,31 @@ app.post("/telegram/webhook", async (c) => {
   const text = msg?.text ?? null;
 
   let replied = false;
+  let reply: string | null = null;
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (token && text && msg?.chat?.id) {
+    try {
+      // Lazy import: the ai package's dependency graph includes @vercel/oidc
+      // (CJS), which the Hono CLI's in-process bundler cannot load statically.
+      // A runtime import works in Bun, Node and on Vercel alike.
+      const { generateText, gateway } = await import("ai");
+      const result = await generateText({
+        model: gateway("google/gemini-3.1-flash-lite"),
+        instructions:
+          "You are a helpful personal assistant. Reply concisely, in plain text suited for a Telegram chat.",
+        prompt: text,
+      });
+      reply = result.text;
+    } catch {
+      reply = text; // AI unavailable — echo so the bot never goes silent
+    }
     try {
       const res = await fetch(
         `https://api.telegram.org/bot${token}/sendMessage`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ chat_id: msg.chat.id, text }),
+          body: JSON.stringify({ chat_id: msg.chat.id, text: reply }),
         },
       );
       const data = (await res.json()) as { ok?: boolean };
@@ -67,6 +85,7 @@ app.post("/telegram/webhook", async (c) => {
     from: msg?.from?.first_name ?? null,
     chat_id: msg?.chat?.id ?? null,
     text,
+    reply,
     replied,
   });
 });
