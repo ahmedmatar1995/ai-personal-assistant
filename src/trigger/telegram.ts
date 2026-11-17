@@ -1,9 +1,8 @@
 import { chat } from "@trigger.dev/sdk/ai";
 import { webhooks } from "@trigger.dev/sdk";
 import { google } from "@ai-sdk/google";
-import { stepCountIs, tool } from "ai";
-import { z } from "zod";
-import { Firecrawl } from "firecrawl";
+import { stepCountIs } from "ai";
+import { webSearch } from "./tools/web-search.js";
 
 // This project's TypeScript 7 does not auto-load @types/node declarations in
 // these task files, and an explicit types:["node"] entry breaks Vercel's
@@ -94,31 +93,6 @@ const telegramChannel = chat.channels.custom({
       ref = await post("sendMessage", { chat_id: chatId, text: chunk });
     }
     return ref !== undefined ? { ref: String(ref) } : {};
-  },
-});
-
-// Web search tool for the assistant. Named and described without any vendor
-// vocabulary — the Telegram user just says "look this up" and the agent decides.
-// shortcut: search returns excerpts only, no full-page markdown; upgrade when
-// answers routinely need deep page content.
-const webSearch = tool({
-  description:
-    "Search the public web. Returns a list of results with page title, URL and a short excerpt. Use it whenever answering needs up-to-date or external information.",
-  inputSchema: z.object({
-    query: z.string().describe("Search query, phrased as keywords"),
-  }),
-  execute: async ({ query }) => {
-    if (!process.env.FIRECRAWL_API_KEY) {
-      throw new Error("FIRECRAWL_API_KEY is not set in the task environment");
-    }
-    const app = new Firecrawl();
-    const res = await app.search(query, { limit: 5 });
-    const results = (res.web ?? []).flatMap((r) =>
-      "url" in r && r.url
-        ? [{ title: r.title ?? "", url: r.url, excerpt: r.description ?? "" }]
-        : [],
-    );
-    return { results };
   },
 });
 
