@@ -1,0 +1,101 @@
+{
+  "type": "base",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "de744ff9-4c39-4bb1-a09c-7146a9d70c69",
+  "prevIds": [
+    "00000000-0000-0000-0000-000000000000"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_table",
+      "statementTarget": [
+        "table",
+        "public",
+        "channel_identifiers"
+      ],
+      "writes": [
+        "s|tbl|public.channel_identifiers",
+        "n|tbl|public.channel_identifiers",
+        "e|tbl|public.channel_identifiers",
+        "n|rel|public.channel_identifiers",
+        "n|type|public.channel_identifiers",
+        "n|rel|public.channel_identifiers_pkey"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    }
+  ],
+  "ddl": [
+    {
+      "schema": "public",
+      "name": "channel_identifiers",
+      "isRlsEnabled": false,
+      "entityType": "tables"
+    },
+    {
+      "schema": "public",
+      "table": "channel_identifiers",
+      "name": "platform",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "channel_identifiers",
+      "name": "external_id",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "channel_identifiers",
+      "name": "clerk_user_id",
+      "type": "text",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": null,
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "channel_identifiers",
+      "name": "linked_at",
+      "type": "timestamp with time zone",
+      "typeSchema": null,
+      "notNull": true,
+      "dimensions": 0,
+      "default": "now()",
+      "generated": null,
+      "identity": null,
+      "entityType": "columns"
+    },
+    {
+      "schema": "public",
+      "table": "channel_identifiers",
+      "name": "channel_identifiers_pkey",
+      "columns": [
+        "platform",
+        "external_id"
+      ],
+      "nameExplicit": false,
+      "entityType": "pks"
+    }
+  ]
+}
