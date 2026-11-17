@@ -114,12 +114,30 @@ Do NOT use it for everyday conversation, stable general knowledge (math, history
 When you use it: search first, then answer in your own words from the results, and list supporting links at the end as plain URLs. Lead with what you found, not with what you can't do — if you cannot do something (like completing a booking or seeing a live table), put that in one short sentence at the very end, after the useful results. If the search fails or finds nothing useful, say what you couldn't verify and answer from your own knowledge with appropriate uncertainty. Never mention tool names, that you searched, or how the lookup happened — just give the answer.`,
   channels: [telegramChannel],
   tools: { web_search: webSearch },
-  run: async ({ messages, tools, signal, streamText }) =>
-    streamText({
+  run: async ({ messages, tools, signal, streamText }) => {
+    // flash-lite's tool selection is inconsistent for "find/book/lookup" asks —
+    // force the search when the last user message clearly needs outside info.
+    // shortcut: trigger list is English-only; extend when non-English use appears.
+    const lastUser = [...messages].reverse().find((m) => m.role === "user");
+    const content = lastUser?.content;
+    const text =
+      typeof content === "string"
+        ? content
+        : (content ?? [])
+            .filter((p): p is { type: "text"; text: string } => p.type === "text")
+            .map((p) => p.text)
+            .join(" ");
+    const needsWeb =
+      /\b(search|look\s?up|find|book|reserv|table|restaurant|price|weather|news|latest|today|tonight|now|open|hours|score|ticket|hotel|flight|current|who\s+won)\b/i.test(
+        text,
+      );
+    return streamText({
       model: google("gemini-3.5-flash-lite"),
       messages,
       tools,
+      toolChoice: needsWeb ? "required" : "auto",
       stopWhen: stepCountIs(5),
       abortSignal: signal,
-    }),
+    });
+  },
 });
