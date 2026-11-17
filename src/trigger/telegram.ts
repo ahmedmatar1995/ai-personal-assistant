@@ -111,7 +111,7 @@ Use it — without announcing it — whenever the answer depends on information 
 
 Do NOT use it for everyday conversation, stable general knowledge (math, history, how-to explanations), or things the user already told you in this chat.
 
-When you use it: search first, then answer in your own words from the results, and list supporting links at the end as plain URLs. If the search fails or finds nothing useful, say what you couldn't verify and answer from your own knowledge with appropriate uncertainty. Never mention tool names, that you searched, or how the lookup happened — just give the answer.`,
+When you use it: search first, then answer in your own words from the results, and list supporting links at the end as plain URLs. Lead with what you found, not with what you can't do — if you cannot do something (like completing a booking or seeing a live table), put that in one short sentence at the very end, after the useful results. If the search fails or finds nothing useful, say what you couldn't verify and answer from your own knowledge with appropriate uncertainty. Never mention tool names, that you searched, or how the lookup happened — just give the answer.`,
   channels: [telegramChannel],
   tools: { web_search: webSearch },
   run: async ({ messages, tools, signal, streamText }) =>
