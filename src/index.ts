@@ -260,12 +260,19 @@ app.post("/connect/:code/approve", async (c) => {
   const secretKey = process.env.CLERK_SECRET_KEY;
   if (!token || !secretKey) return c.json({ error: "invalid_token" }, 401);
 
-  const { data, errors } = await verifyToken(token, { secretKey });
-  // @clerk/shared's JwtPayload type doesn't resolve under this TS config
-  // (skipLibCheck hides the error, data collapses to {}), so read sub via a cast.
-  const clerkUserId = (data as { sub?: string } | undefined)?.sub;
-  if (errors || !clerkUserId) {
-    console.error("approve token rejected:", errors);
+  // @clerk/backend v3 changed verifyToken at runtime: it returns the JWT
+  // payload DIRECTLY and THROWS on invalid tokens — its own .d.ts still claims
+  // the old {data, errors} shape, so trust the behavior verified locally.
+  let clerkUserId: string | undefined;
+  try {
+    const payload = (await verifyToken(token, { secretKey })) as { sub?: string };
+    clerkUserId = payload?.sub;
+  } catch (err) {
+    console.error("approve token rejected:", err instanceof Error ? err.message : err);
+    return c.json({ error: "invalid_token" }, 401);
+  }
+  if (!clerkUserId) {
+    console.error("approve token rejected: payload has no sub");
     return c.json({ error: "invalid_token" }, 401);
   }
 
