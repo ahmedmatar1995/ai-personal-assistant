@@ -19,15 +19,20 @@ declare const process: { env: Record<string, string | undefined> };
 
 // Minimal shape of the Telegram updates we care about. The source only
 // verifies signatures — it does not validate bodies against this type.
-type TelegramUpdate = {
+// clerk_user_id is NOT from Telegram: our own webhook gate (src/index.ts)
+// adds it when it forwards an update for a linked user.
+export type TelegramUpdate = {
   update_id: number;
+  clerk_user_id?: string;
   message?: {
     message_id: number;
     date: number;
     text?: string;
     caption?: string;
-    from?: { first_name?: string };
-    chat: { id: number };
+    // from.id identifies the sender for the webhook gate; chat.type says
+    // whether the chat is private (needed to skip strangers in groups).
+    from?: { id?: number; first_name?: string };
+    chat: { id: number; type?: string };
     document?: {
       file_id: string;
       file_name?: string;

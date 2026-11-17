@@ -28,6 +28,23 @@ export async function telegramFileUrl(fileId: string): Promise<string> {
   return `${TELEGRAM_API}/file/bot${botToken()}/${path}`;
 }
 
+// Send a plain text message to a chat.
+export async function sendTelegramMessage(
+  chatId: number,
+  text: string,
+): Promise<void> {
+  const res = await fetch(`${TELEGRAM_API}/bot${botToken()}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat_id: chatId, text }),
+  });
+  if (!res.ok) {
+    throw new Error(
+      `Telegram sendMessage failed (${res.status}): ${(await res.text()).slice(0, 200)}`,
+    );
+  }
+}
+
 // Send a file to a chat as a document (multipart). Telegram captions cap at
 // 1024 chars.
 export async function sendTelegramDocument(
