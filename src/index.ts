@@ -265,7 +265,7 @@ app.post("/connect/:code/approve", async (c) => {
   // (skipLibCheck hides the error, data collapses to {}), so read sub via a cast.
   const clerkUserId = (data as { sub?: string } | undefined)?.sub;
   if (errors || !clerkUserId) {
-    console.error("approve token rejected:", errors?.map((e) => e.message));
+    console.error("approve token rejected:", errors);
     return c.json({ error: "invalid_token" }, 401);
   }
 
