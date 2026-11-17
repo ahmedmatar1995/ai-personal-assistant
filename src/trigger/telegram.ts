@@ -10,6 +10,7 @@ import { readManyPages } from "./tools/batch-scrape.js";
 import { deepResearch } from "./tools/agent.js";
 import { readDocument } from "./tools/parse.js";
 import { watchPage, listWatches } from "./tools/monitor.js";
+import { makeCodeSandboxTool } from "./tools/code-sandbox.js";
 
 // This project's TypeScript 7 does not auto-load @types/node declarations in
 // these task files, and an explicit types:["node"] entry breaks Vercel's
@@ -24,8 +25,16 @@ type TelegramUpdate = {
     message_id: number;
     date: number;
     text?: string;
+    caption?: string;
     from?: { first_name?: string };
     chat: { id: number };
+    document?: {
+      file_id: string;
+      file_name?: string;
+      mime_type?: string;
+      file_size?: number;
+    };
+    photo?: { file_id: string; file_size?: number }[];
   };
 };
 
@@ -51,8 +60,23 @@ const telegramChannel = chat.channels.custom({
   id: "telegram",
   endpoint: telegramEndpoint,
   key: "{event.message.chat.id}",
-  // Photos, stickers, edits, etc. map to an empty message, which runs no turn.
-  inbound: (e) => e.message?.text ?? "",
+  // Files (documents, photos) map to a [file attached] note so a turn still
+  // runs and the model can hand the file_id to the sandbox tool.
+  inbound: (e) => {
+    const m = e.message;
+    if (!m) return "";
+    const text = m.text ?? m.caption ?? "";
+    if (m.document) {
+      const d = m.document;
+      return `${text ? text + "\n" : ""}[file attached] name=${d.file_name ?? "file"} type=${d.mime_type ?? "unknown"} size=${d.file_size ?? "?"} file_id=${d.file_id}`;
+    }
+    if (m.photo?.length) {
+      // Telegram sends several photo sizes; the last is the largest.
+      const p = m.photo[m.photo.length - 1];
+      return `${text ? text + "\n" : ""}[file attached] kind=photo size=${p.file_size ?? "?"} file_id=${p.file_id}`;
+    }
+    return text;
+  },
   send: async (message, ctx) => {
     const token = process.env.TELEGRAM_BOT_TOKEN;
     if (!token)
@@ -118,12 +142,17 @@ You have web tools. Pick the lightest one that answers the question, and use the
 - read_document: read a PDF/Word/Excel file link.
 - deep_research: autonomous multi-site research that runs for several minutes and costs much more — only when search plus page reads clearly won't be enough.
 - watch_page: start watching pages for meaningful changes on a schedule; list_watches: review current watches and their latest results.
+- run_code: process files the user sent, or run a computation, in a private workspace — data work on CSVs, spreadsheets, documents, images (convert, analyze, summarize, generate) — and send result files back to the chat when that's what the user wants. Attached files appear as [file attached] notes with a file_id: pass the file_ids as inputFiles, and write anything the user should receive into /home/daytona/output/ and list it in returnFiles.
 
-Do NOT use them for everyday conversation, stable general knowledge (math, history, how-to explanations), or things the user already told you in this chat.
+Do NOT use them for everyday conversation, stable general knowledge (math, history, how-to explanations), or things the user already told you in this chat. Use run_code only when the request genuinely needs file processing or a real computation — not for arithmetic you can do yourself.
+
+When the user sends a file with no instructions, briefly confirm you have it and ask what they'd like done with it.
 
 When you use them: prefer one search over several; read at most the one or two most promising pages; never invent URLs — search or list site links to find them. Answer in your own words from what you found, and list supporting links at the end as plain URLs. Lead with what you found, not with what you can't do — if you cannot do something (like completing a booking or seeing a live table), put that in one short sentence at the very end, after the useful results. If a tool fails or finds nothing useful, say what you couldn't verify and answer from your own knowledge with appropriate uncertainty. Never mention tool names, that you searched, or how the lookup happened — just give the answer.`,
   channels: [telegramChannel],
-  tools: {
+  // Per-turn resolution: the sandbox tool carries the chat session id and
+  // resolves the real Telegram chat id itself at execute time.
+  tools: ({ chatId }) => ({
     web_search: webSearch,
     read_page: readPage,
     list_site_links: listSiteLinks,
@@ -133,7 +162,8 @@ When you use them: prefer one search over several; read at most the one or two m
     read_document: readDocument,
     watch_page: watchPage,
     list_watches: listWatches,
-  },
+    run_code: makeCodeSandboxTool(chatId),
+  }),
   run: async ({ messages, tools, signal, streamText }) => {
     // flash-lite's tool selection is inconsistent for "find/book/lookup" asks —
     // force the search when the last user message clearly needs outside info.
