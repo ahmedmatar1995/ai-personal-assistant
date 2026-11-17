@@ -169,7 +169,7 @@ const CONNECT_PAGE = (code: string, publishableKey: string) => `<!doctype html>
   <p id="state">Loading&hellip;</p>
   <a class="btn" id="signin" href="#">Sign in to approve</a>
 </div>
-<script crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@5/dist/clerk.browser.js"></script>
+<script crossorigin="anonymous" src="https://cdn.jsdelivr.net/npm/@clerk/clerk-js@5/dist/clerk.browser.js" data-clerk-publishable-key="${publishableKey}"></script>
 <script>
   const CODE = "${code}";
   const PK = "${publishableKey}";
