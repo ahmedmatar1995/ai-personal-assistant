@@ -3,6 +3,13 @@ import { webhooks } from "@trigger.dev/sdk";
 import { google } from "@ai-sdk/google";
 import { stepCountIs } from "ai";
 import { webSearch } from "./tools/web-search.js";
+import { readPage } from "./tools/scrape.js";
+import { listSiteLinks } from "./tools/map.js";
+import { readSite } from "./tools/crawl.js";
+import { readManyPages } from "./tools/batch-scrape.js";
+import { deepResearch } from "./tools/agent.js";
+import { readDocument } from "./tools/parse.js";
+import { watchPage, listWatches } from "./tools/monitor.js";
 
 // This project's TypeScript 7 does not auto-load @types/node declarations in
 // these task files, and an explicit types:["node"] entry breaks Vercel's
@@ -102,18 +109,31 @@ export const assistant = chat.agent({
   id: "assistant",
   system: `You are a helpful personal assistant chatting over Telegram. Reply concisely, in plain text, without markdown formatting.
 
-You have a web_search tool that searches the public web and returns page titles, links, and short excerpts.
+You have web tools. Pick the lightest one that answers the question, and use them without announcing them:
+- web_search: search the web and news. The default for anything current or outside your knowledge.
+- read_page: read one specific URL for its full content. Extras: a summary, the page's links, structured data you describe (extractPrompt), clicking a button to expand content (clickSelector), or waiting for slow pages (waitFor).
+- list_site_links: find the pages of a site, ranked by a term (e.g. "pricing"), before reading the right one.
+- read_many_pages: read a handful of known URLs in one go.
+- read_site: read many pages of one site — heavier; keep the limit small (10).
+- read_document: read a PDF/Word/Excel file link.
+- deep_research: autonomous multi-site research that runs for several minutes and costs much more — only when search plus page reads clearly won't be enough.
+- watch_page: start watching pages for meaningful changes on a schedule; list_watches: review current watches and their latest results.
 
-Use it — without announcing it — whenever the answer depends on information you cannot reliably know on your own:
-- Current or recent things: news, events, weather, prices, sports scores, schedules, release dates, or anything the user words with "latest", "now", or "today".
-- Facts that may have changed recently: software versions, rankings, who holds a position or title, whether a business is open, whether something still exists.
-- Specific lookups the user asks you to check, find, look up, or verify online.
+Do NOT use them for everyday conversation, stable general knowledge (math, history, how-to explanations), or things the user already told you in this chat.
 
-Do NOT use it for everyday conversation, stable general knowledge (math, history, how-to explanations), or things the user already told you in this chat.
-
-When you use it: search first, then answer in your own words from the results, and list supporting links at the end as plain URLs. Lead with what you found, not with what you can't do — if you cannot do something (like completing a booking or seeing a live table), put that in one short sentence at the very end, after the useful results. If the search fails or finds nothing useful, say what you couldn't verify and answer from your own knowledge with appropriate uncertainty. Never mention tool names, that you searched, or how the lookup happened — just give the answer.`,
+When you use them: prefer one search over several; read at most the one or two most promising pages; never invent URLs — search or list site links to find them. Answer in your own words from what you found, and list supporting links at the end as plain URLs. Lead with what you found, not with what you can't do — if you cannot do something (like completing a booking or seeing a live table), put that in one short sentence at the very end, after the useful results. If a tool fails or finds nothing useful, say what you couldn't verify and answer from your own knowledge with appropriate uncertainty. Never mention tool names, that you searched, or how the lookup happened — just give the answer.`,
   channels: [telegramChannel],
-  tools: { web_search: webSearch },
+  tools: {
+    web_search: webSearch,
+    read_page: readPage,
+    list_site_links: listSiteLinks,
+    read_site: readSite,
+    read_many_pages: readManyPages,
+    deep_research: deepResearch,
+    read_document: readDocument,
+    watch_page: watchPage,
+    list_watches: listWatches,
+  },
   run: async ({ messages, tools, signal, streamText }) => {
     // flash-lite's tool selection is inconsistent for "find/book/lookup" asks —
     // force the search when the last user message clearly needs outside info.
