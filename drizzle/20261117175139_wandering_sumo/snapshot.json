@@ -1,0 +1,184 @@
+{
+  "type": "diff",
+  "version": "9",
+  "dialect": "postgres",
+  "id": "5471fc52-e4f3-4971-94f9-9fc350dbe49e",
+  "prevIds": [
+    "de744ff9-4c39-4bb1-a09c-7146a9d70c69"
+  ],
+  "footprints": [
+    {
+      "statementType": "create_enum",
+      "statementTarget": [
+        "enum",
+        "public",
+        "platform"
+      ],
+      "writes": [
+        "s|enum|public.platform",
+        "n|enum|public.platform",
+        "e|enum|public.platform",
+        "n|type|public.platform"
+      ],
+      "reads": [
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "add_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "channel_identifiers",
+        "id"
+      ],
+      "writes": [
+        "s|col|public.channel_identifiers.id",
+        "n|col|public.channel_identifiers.id",
+        "e|col|public.channel_identifiers.id"
+      ],
+      "reads": [
+        "n|tbl|public.channel_identifiers",
+        "n|sch|public"
+      ]
+    },
+    {
+      "statementType": "alter_pk",
+      "statementTarget": [
+        "table",
+        "public",
+        "channel_identifiers"
+      ],
+      "writes": [
+        "s|pk|public.channel_identifiers"
+      ],
+      "reads": [
+        "n|tbl|public.channel_identifiers",
+        "n|sch|public",
+        "n|col|public.channel_identifiers.id"
+      ],
+      "sharedWrites": [
+        "e|uniqueness|public.channel_identifiers.external_id.platform"
+      ],
+      "sqlHash": "d6483f0abaa13f80"
+    },
+    {
+      "statementType": "alter_column",
+      "statementTarget": [
+        "column",
+        "public",
+        "channel_identifiers",
+        "platform"
+      ],
+      "writes": [
+        "s|colprop|public.channel_identifiers.platform.type",
+        "s|colprop|public.channel_identifiers.platform.default"
+      ],
+      "reads": [
+        "n|tbl|public.channel_identifiers",
+        "n|sch|public",
+        "n|col|public.channel_identifiers.platform",
+        "n|enum|public.platform"
+      ],
+      "sqlHash": "bf32c1e916cd2933"
+    },
+    {
+      "statementType": "create_index",
+      "statementTarget": [
+        "index",
+        "public",
+        "channel_identifiers",
+        "channel_identifiers_platform_external_idx"
+      ],
+      "writes": [
+        "s|idx|public.channel_identifiers_platform_external_idx",
+        "n|idx|public.channel_identifiers_platform_external_idx",
+        "e|idx|public.channel_identifiers_platform_external_idx",
+        "n|rel|public.channel_identifiers_platform_external_idx"
+      ],
+      "reads": [
+        "n|tbl|public.channel_identifiers",
+        "n|sch|public",
+        "n|col|public.channel_identifiers.platform",
+        "n|col|public.channel_identifiers.external_id"
+      ]
+    }
+  ],
+  "deltas": [
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "name": "platform",
+        "values": [
+          "telegram"
+        ],
+        "entityType": "enums"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "channel_identifiers",
+        "name": "id",
+        "type": "uuid",
+        "typeSchema": null,
+        "notNull": true,
+        "dimensions": 0,
+        "default": "gen_random_uuid()",
+        "generated": null,
+        "identity": null,
+        "entityType": "columns"
+      }
+    },
+    {
+      "op": "create",
+      "row": {
+        "schema": "public",
+        "table": "channel_identifiers",
+        "name": "channel_identifiers_platform_external_idx",
+        "nameExplicit": true,
+        "columns": [
+          {
+            "value": "platform",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          },
+          {
+            "value": "external_id",
+            "isExpression": false,
+            "asc": true,
+            "nullsFirst": false,
+            "opclass": null
+          }
+        ],
+        "isUnique": true,
+        "where": null,
+        "with": "",
+        "method": "btree",
+        "concurrently": false,
+        "entityType": "indexes"
+      }
+    },
+    {
+      "op": "alter",
+      "key": "columns\u0000[\"public\",\"channel_identifiers\",\"platform\"]",
+      "set": {
+        "type": "platform",
+        "typeSchema": "public"
+      }
+    },
+    {
+      "op": "alter",
+      "key": "pks\u0000[\"public\",\"channel_identifiers\",\"channel_identifiers_pkey\"]",
+      "set": {
+        "columns": [
+          "id"
+        ]
+      }
+    }
+  ]
+}

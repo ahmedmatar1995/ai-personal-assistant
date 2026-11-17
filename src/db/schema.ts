@@ -1,5 +1,7 @@
-import { pgTable } from "drizzle-orm/pg-core";
+import { pgEnum, pgTable } from "drizzle-orm/pg-core";
 import * as t from "drizzle-orm/pg-core";
+
+export const platformEnum = pgEnum("platform", ["telegram"]);
 
 // Maps a messaging-platform identity (platform + external id, e.g. a Telegram
 // user id) to the Clerk account that owns it, so inbound webhook traffic can
@@ -7,7 +9,8 @@ import * as t from "drizzle-orm/pg-core";
 export const channelIdentifiers = pgTable(
   "channel_identifiers",
   {
-    platform: t.text("platform").$type<"telegram">().notNull(),
+    id: t.uuid("id").primaryKey().defaultRandom(),
+    platform: platformEnum("platform").notNull(),
     externalId: t.text("external_id").notNull(),
     clerkUserId: t.text("clerk_user_id").notNull(),
     linkedAt: t
@@ -16,8 +19,11 @@ export const channelIdentifiers = pgTable(
       .defaultNow(),
   },
   (table) => [
-    // (platform, external_id) is the natural key: one identity = one row, and
-    // it doubles as the lookup index for scoping webhook traffic.
-    t.primaryKey({ columns: [table.platform, table.externalId] }),
+    // One identity = one row; doubles as the lookup index for scoping webhook
+    // traffic.
+    t.uniqueIndex("channel_identifiers_platform_external_idx").on(
+      table.platform,
+      table.externalId,
+    ),
   ],
 );
