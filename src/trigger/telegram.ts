@@ -124,7 +124,9 @@ When you use it: search first, then answer in your own words from the results, a
       typeof content === "string"
         ? content
         : (content ?? [])
-            .filter((p): p is { type: "text"; text: string } => p.type === "text")
+            .filter(
+              (p): p is { type: "text"; text: string } => p.type === "text",
+            )
             .map((p) => p.text)
             .join(" ");
     const needsWeb =
@@ -135,7 +137,13 @@ When you use it: search first, then answer in your own words from the results, a
       model: google("gemini-3.5-flash-lite"),
       messages,
       tools,
-      toolChoice: needsWeb ? "required" : "auto",
+      // Force the search on the FIRST step only; later steps must be free so
+      // the model can answer from the results (a stream-wide "required" loops
+      // on tool calls and never produces final text).
+      prepareStep: ({ stepNumber }) =>
+        needsWeb && stepNumber === 0
+          ? { toolChoice: "required" as const }
+          : { toolChoice: "auto" as const },
       stopWhen: stepCountIs(5),
       abortSignal: signal,
     });
