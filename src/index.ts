@@ -183,7 +183,8 @@ const CONNECT_PAGE = (code: string, publishableKey: string) => `<!doctype html>
       const res = await fetch("/connect/" + CODE + "/approve", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ token: clerk.session.lastActiveToken }),
+        // lastActiveToken is an object ({jwt, ...}); getToken() is the raw string.
+        body: JSON.stringify({ token: await clerk.session.getToken() }),
       });
       const out = await res.json().catch(() => ({}));
       if (res.ok && out.ok) {
@@ -263,7 +264,10 @@ app.post("/connect/:code/approve", async (c) => {
   // @clerk/shared's JwtPayload type doesn't resolve under this TS config
   // (skipLibCheck hides the error, data collapses to {}), so read sub via a cast.
   const clerkUserId = (data as { sub?: string } | undefined)?.sub;
-  if (errors || !clerkUserId) return c.json({ error: "invalid_token" }, 401);
+  if (errors || !clerkUserId) {
+    console.error("approve token rejected:", errors?.map((e) => e.message));
+    return c.json({ error: "invalid_token" }, 401);
+  }
 
   const [row] = await db
     .select()
