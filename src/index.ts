@@ -35,6 +35,32 @@ function publicBaseUrl(c: {
   return `${proto}://${host}`;
 }
 
+function billingUrl(): string {
+  return process.env.CLERK_BILLING_URL || "https://cheerful-coyote-5378.accounts.dev/user";
+}
+
+// Look up the user's current Clerk billing plan slug via the Backend API.
+// Returns null on any error or missing subscription - callers treat null as
+// "not entitled" (fail closed).
+async function userPlanSlug(clerkUserId: string): Promise<string | null> {
+  const secretKey = process.env.CLERK_SECRET_KEY;
+  if (!secretKey) return null;
+  try {
+    const res = await fetch(
+      `https://api.clerk.com/v1/users/${encodeURIComponent(clerkUserId)}/billing/subscription`,
+      { headers: { Authorization: `Bearer ${secretKey}` } },
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as {
+      subscription_items?: { plan?: { slug?: string } }[];
+    };
+    return data.subscription_items?.[0]?.plan?.slug ?? null;
+  } catch (err) {
+    console.error("plan lookup failed", err);
+    return null;
+  }
+}
+
 const app = new Hono();
 
 app.get("/", (c) => {
@@ -75,6 +101,22 @@ app.post("/telegram", async (c) => {
     .limit(1);
 
   if (linked) {
+    // Subscription gate: only Pro users may use the agent. Unlinked users
+    // never reach here (handled below). Linked non-Pro users get a link to
+    // upgrade in the hosted Account Portal instead of running the agent.
+    const plan = await userPlanSlug(linked.clerkUserId);
+    if (plan !== "pro") {
+      try {
+        await sendTelegramMessage(
+          m.chat.id,
+          `This assistant requires a Pro subscription. Upgrade here: ${billingUrl()}`,
+        );
+      } catch (err) {
+        console.error("billing reply failed", err);
+      }
+      return c.text("ok");
+    }
+
     const ingestUrl = process.env.TRIGGER_INGEST_URL;
     if (!ingestUrl) return c.text("TRIGGER_INGEST_URL is not set", 500);
     const res = await fetch(ingestUrl, {
@@ -265,10 +307,15 @@ app.post("/connect/:code/approve", async (c) => {
   // the old {data, errors} shape, so trust the behavior verified locally.
   let clerkUserId: string | undefined;
   try {
-    const payload = (await verifyToken(token, { secretKey })) as { sub?: string };
+    const payload = (await verifyToken(token, { secretKey })) as {
+      sub?: string;
+    };
     clerkUserId = payload?.sub;
   } catch (err) {
-    console.error("approve token rejected:", err instanceof Error ? err.message : err);
+    console.error(
+      "approve token rejected:",
+      err instanceof Error ? err.message : err,
+    );
     return c.json({ error: "invalid_token" }, 401);
   }
   if (!clerkUserId) {
