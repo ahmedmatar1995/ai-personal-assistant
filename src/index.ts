@@ -36,7 +36,10 @@ function publicBaseUrl(c: {
 }
 
 function billingUrl(): string {
-  return process.env.CLERK_BILLING_URL || "https://cheerful-coyote-5378.accounts.dev/user";
+  return (
+    process.env.CLERK_BILLING_URL ||
+    "https://cheerful-coyote-5378.accounts.dev/user"
+  );
 }
 
 // Look up the user's current Clerk billing plan slug via the Backend API.
